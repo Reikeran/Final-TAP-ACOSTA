@@ -1,29 +1,48 @@
-name: Unity CI
+name: Actions 😎
 
-on:
-  push:
-    branches: [ main ]   # Ejecuta cada push a main
-  pull_request:
-    branches: [ main ]   # También se puede ejecutar en PRs
+on: [push, pull_request]
 
 jobs:
-  build-webgl:
-    name: Build WebGL
+  build:
+    name: Build my project ✨
     runs-on: ubuntu-latest
     steps:
-      - name: Descargar repositorio
-        uses: actions/checkout@v3
+      # Checkout
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      - name: Cache de la carpeta Library
-        uses: actions/cache@v3
+      # Cache
+      - uses: actions/cache@v3
         with:
           path: Library
-          key: ${{ runner.os }}-unity-${{ hashFiles('**/*.cs') }}
+          key: Library-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-
 
-      - name: Build WebGL
-        uses: game-ci/unity-builder@v3
+      # Test
+      - name: Run tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          unityVersion: '2023.2.0f1'      # Cambiá por tu versión
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build
+      - name: Build project
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
           targetPlatform: WebGL
-          buildName: WebGLBuild
-          cache: true
+
+      # Output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Build
+          path: build
